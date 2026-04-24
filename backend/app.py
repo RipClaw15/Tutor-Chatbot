@@ -2,19 +2,24 @@ from typing import TypedDict, List, Annotated
 from unittest import result
 from urllib import response
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import json
 import os
 
 load_dotenv()
+limiter = Limiter(key_func=get_remote_address)
 
 HINT_STRATEGIES = {
     0:"Use a real-world analogy to explain the concept. Then ask a broad open question to probe understanding. Do NOT give the answer.",
@@ -45,12 +50,12 @@ class TutorState(TypedDict):
 
 
 class ChatRequest(BaseModel):
-    message: str
-    topic: str = ""
-    hint_level: int = 0 
-    misconception: str  = ""
+    message: str = Field(..., min_length=1, max_length=1000)
+    topic: str = Field(default="", max_length=100)
+    hint_level: int = Field(default=0, ge=0, le=3) 
+    misconception: str  = Field(default="", max_length=500)
     resolved: bool = False
-    history: List[dict] = []
+    history: List[dict] = Field(default=[],max_length=50)
 
 def extract_topic_node(state: TutorState) -> dict:
     if state["topic"]:
@@ -202,6 +207,8 @@ def build_assessment_graph() -> StateGraph:
 assessment_graph = build_assessment_graph()
 
 app = FastAPI(title="CS Tutor Agent")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -223,17 +230,18 @@ def deserialize_history(history: List[dict]) -> List[BaseMessage]:
     return messages
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+@limiter.limit("10/minute")
+async def chat(request: Request, body:ChatRequest):
 
-    history = deserialize_history(request.history)
-    new_message = HumanMessage(content=request.message)
+    history = deserialize_history(body.history)
+    new_message = HumanMessage(content=body.message)
 
     initial_state: TutorState = {
         "messages": history + [new_message],
-        "topic": request.topic,
-        "hint_level": request.hint_level,
-        "misconception": request.misconception,
-        "resolved": request.resolved,
+        "topic": body.topic,
+        "hint_level": body.hint_level,
+        "misconception": body.misconception,
+        "resolved": body.resolved,
     }
 
     async def event_stream():
