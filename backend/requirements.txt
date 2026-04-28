@@ -7,3 +7,8 @@ langgraph
 python-dotenv
 pydantic
 slowapi
+httpx
+langchain-chroma
+chromadb
+langchain-community
+pypdf
