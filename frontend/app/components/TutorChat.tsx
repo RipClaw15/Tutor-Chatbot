@@ -32,7 +32,10 @@ export default function TutorChat() {
     misconceptions: "",
     resolved: false,
   });
-  
+  const [sessionId, setSessionId]     = useState("");
+  const [uploading, setUploading]     = useState(false);
+  const [docUploaded, setDocUploaded] = useState(false);
+  const fileInputRef                  = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -69,6 +72,7 @@ async function send() {
           hint_level: state.hint_level,
           misconception: state.misconceptions,
           resolved: state.resolved,
+          session_id: sessionId,
         }),
       });
 
@@ -160,6 +164,42 @@ async function send() {
     setState({ topic: "", hint_level: 0, misconceptions: "", resolved: false });
     setInput("");
     setStreaming(false);
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://localhost:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      setSessionId(data.session_id);
+      setDocUploaded(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Document "${file.name}" uploaded successfully. I will now use it to help answer your questions.`,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Failed to upload document. Please try again." },
+      ]);
+    } finally {
+      setUploading(false);
+    }
   }
 
   // JSX
@@ -256,6 +296,27 @@ async function send() {
             className="flex-1 resize-y bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
             style={{ minHeight: "80px", maxHeight: "300px" }}
           />
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf"
+            onChange={handleUpload}
+            className="hidden"
+            aria-label="Upload PDF document"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-colors border ${
+              docUploaded
+                ? "border-green-500 text-green-500"
+                : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+            } disabled:opacity-30 disabled:cursor-not-allowed`}
+          >
+            {uploading ? "..." : docUploaded ? "Doc ✓" : "Upload"}
+          </button>
+
           <button
             onClick={send}
             disabled={streaming || !input.trim()}

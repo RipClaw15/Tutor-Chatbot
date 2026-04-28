@@ -8,20 +8,27 @@ from slowapi.errors import RateLimitExceeded
 
 from agent.graph import assessment_graph, llm
 from agent.state import TutorState, ChatRequest, HINT_STRATEGIES
-
 from agent.tools import execute_code, detect_language, contains_code, extract_code
+
+from agent.rag.indexer import build_index
+from agent.rag.retriever import get_relevant_context
 
 from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from fastapi import FastAPI, HTTPException, Request
+
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
+
 import json
 import os
+import uuid
+import tempfile
 
 load_dotenv()
 limiter = Limiter(key_func=get_remote_address)
@@ -30,6 +37,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 
 app = FastAPI(title="CS Tutor Agent")
+sessions: dict = {}  # In-memory session store, keyed by session ID
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -68,6 +76,14 @@ async def chat(request: Request, body:ChatRequest):
     }
 
     assessment_state = assessment_graph.invoke(initial_state)
+
+    # RAG retrieval if document was uploaded
+    rag_context = ""
+    if body.session_id and body.session_id in sessions:
+        rag_context = get_relevant_context(
+            sessions[body.session_id],
+            body.message
+        )
 
     # Handle unknown topic before defining event_stream
     if assessment_state["topic"] == "unknown":
@@ -114,6 +130,22 @@ async def chat(request: Request, body:ChatRequest):
             if code_output:
                 misconception_note += f"\n\nThe student's code was executed and produced this result:\n{code_output}\nUse this to give more accurate feedback."
 
+            # RAG context
+            rag_context = ""
+            if body.session_id and body.session_id in sessions:
+                rag_context = get_relevant_context(
+                    sessions[body.session_id],
+                    body.message
+                )
+
+            rag_note = (
+                f"\n\nRelevant context from the student's uploaded document:\n{rag_context}"
+                if rag_context
+                else ""
+            )
+
+            misconception_note = misconception_note + rag_note
+
             if assessment_state["resolved"]:
                 system_content = f"""You are a Socratic CS tutor. The student has just successfully understood: {assessment_state['topic']}
                                      Give a warm, brief (2-3 sentence) congratulation. Reinforce the key insight they discovered."""
@@ -152,3 +184,28 @@ async def chat(request: Request, body:ChatRequest):
 def health():
     return {"status": "ok", "model": os.getenv("LLM_MODEL", "llama3.2")}
 
+@app.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+
+    # Accept a PDF upload, index it and return a session_id
+
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    # Create a temporary file to save the uploaded PDF
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+        content = await file.read()
+        tmp_file.write(content)
+        tmp_file_path = tmp_file.name
+
+    # Build the index for the uploaded PDF
+    vectorstore = build_index(tmp_file_path)
+
+    # Generate a unique session ID
+    session_id = str(uuid.uuid4())
+
+    # Store the vectorstore in the session
+    sessions[session_id] = vectorstore
+
+    # Return the session ID
+    return {"session_id": session_id, "message": "Document indexed successfully."}

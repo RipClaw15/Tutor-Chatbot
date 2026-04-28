@@ -12,3 +12,7 @@ langchain-chroma
 chromadb
 langchain-community
 pypdf
+langchain-google-genai
+langchain-text-splitters
+python-multipart
+langchain-huggingface sentence-transformers

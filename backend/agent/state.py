@@ -30,3 +30,4 @@ class ChatRequest(BaseModel):
     misconception: str  = Field(default="", max_length=500)
     resolved: bool = False
     history: List[dict] = Field(default=[],max_length=50)
+    session_id: str = Field(default="")
