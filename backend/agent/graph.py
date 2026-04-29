@@ -17,16 +17,21 @@ load_dotenv()
 
 
 # This function initializes the language model based on environment variables. It supports multiple providers (currently "ollama" and "groq") and allows you to specify the model name and temperature. By abstracting this logic into a function, we can easily switch between different LLM providers or models without changing the core logic of our application.
-def get_llm():
-    provider = os.getenv("LLM_PROVIDER", "ollama")
-    model = os.getenv("LLM_MODEL", "llama3.2")
+def get_llm(provider: str = None):
+    if provider is None:
+        provider = os.getenv("LLM_PROVIDER", "groq")
+    model = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+
     if provider == "ollama":
         return ChatOllama(model=model, temperature=0.4)
     elif provider == "groq":
         from langchain_groq import ChatGroq
         return ChatGroq(model=model, temperature=0.4)
-    
-    raise ValueError(f"Unsupported LLM provider: {provider}")
+    elif provider == "gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.4)
+
+    raise ValueError(f"Unknown provider: {provider}")
 
 llm = get_llm()
 

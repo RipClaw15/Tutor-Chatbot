@@ -15,30 +15,31 @@ interface TutorState {
     resolved: boolean;
 }
 
-const HINT_LABELS: Record<number, {label: string; color: string}> = {
-    0: {label: "Analogy", color: "gray"},
-    1: {label: "Hint", color: "blue"},
-    2: {label: "Leading Q", color: "green"},
-    3: {label: "Revealing", color: "orange"},
-};
+interface TutorChatProps {
+  initialMessage?: string;
+  provider?: "groq" | "gemini";
+}
 
-export default function TutorChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+export default function TutorChat({ initialMessage = "", provider = "groq" }: TutorChatProps) {
+  const [messages, setMessages]   = useState<Message[]>([]);
+  const [input, setInput]         = useState(initialMessage);
   const [streaming, setStreaming] = useState(false);
-  const [state, setState] = useState<TutorState>({
-    topic: "",
-    hint_level: 0,
-    misconceptions: "",
-    resolved: false,
+  const [state, setState]         = useState<TutorState>({
+      topic: "",
+      hint_level: 0,
+      misconceptions: "",
+      resolved: false,
   });
   const [sessionId, setSessionId]     = useState("");
   const [uploading, setUploading]     = useState(false);
   const [docUploaded, setDocUploaded] = useState(false);
-  const fileInputRef                  = useRef<HTMLInputElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+
+  const bottomRef   = useRef<HTMLDivElement>(null);
+  const inputRef    = useRef<HTMLTextAreaElement>(null);
+  const abortRef    = useRef<AbortController | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({behavior: "smooth"});
@@ -73,6 +74,7 @@ async function send() {
           misconception: state.misconceptions,
           resolved: state.resolved,
           session_id: sessionId,
+          provider: provider,
         }),
       });
 
@@ -166,11 +168,23 @@ async function send() {
     setStreaming(false);
   }
 
+
+  // Upload file handler
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+
+    // Immediately show uploading message in chat
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: `Uploading "${file.name}"...`,
+      },
+    ]);
+
     const formData = new FormData();
     formData.append("file", file);
 
@@ -185,24 +199,39 @@ async function send() {
       const data = await res.json();
       setSessionId(data.session_id);
       setDocUploaded(true);
-      setMessages((prev) => [
-        ...prev,
-        {
+
+      // Replace the uploading message with success
+      setMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = {
           role: "assistant",
-          content: `Document "${file.name}" uploaded successfully. I will now use it to help answer your questions.`,
-        },
-      ]);
+          content: `✓ "${file.name}" uploaded and indexed. I will now use it to help answer your questions.`,
+        };
+        return next;
+      });
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Failed to upload document. Please try again." },
-      ]);
+      // Replace the uploading message with error
+      setMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = {
+          role: "assistant",
+          content: "Failed to upload document. Please try again.",
+        };
+        return next;
+      });
     } finally {
       setUploading(false);
     }
   }
 
   // JSX
+
+  const HINT_LABELS: Record<number, {label: string; color: string}> = {
+    0: {label: "Analogy", color: "#10b981"},
+    1: {label: "Hint", color: "#f59e0b"},
+    2: {label: "Leading Q", color: "#f97316"},
+    3: {label: "Revealing", color: "#ef4444"},
+  };
 
   const hint = HINT_LABELS[state.hint_level];
 

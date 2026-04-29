@@ -6,7 +6,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from agent.graph import assessment_graph, llm
+from agent.graph import assessment_graph, get_llm
 from agent.state import TutorState, ChatRequest, HINT_STRATEGIES
 from agent.tools import execute_code, detect_language, contains_code, extract_code
 
@@ -64,6 +64,8 @@ def deserialize_history(history: List[dict]) -> List[BaseMessage]:
 @limiter.limit("10/minute")
 async def chat(request: Request, body:ChatRequest):
 
+    llm = get_llm(body.provider)
+
     history = deserialize_history(body.history)
     new_message = HumanMessage(content=body.message)
 
@@ -109,6 +111,8 @@ async def chat(request: Request, body:ChatRequest):
             print("assessment topic:", assessment_state["topic"])
 
             # Execute code if detected in the latest message
+
+            misconception_note = ""
             
             if contains_code(body.message):
                 print("Code detected in the message, extracting and executing...")
@@ -116,6 +120,20 @@ async def chat(request: Request, body:ChatRequest):
                 language = detect_language(code)
                 code_output = await execute_code(code, language)
                 print("Code execution output:", code_output)
+
+                asking_for_output = any(phrase in body.message.lower() for phrase in [
+                    "what is the output",
+                    "what will this output",
+                    "what does this print",
+                    "what is the result",
+                    "run this",
+                    "execute this",
+                ])
+
+                if asking_for_output:
+                    misconception_note += f"\n\nIMPORTANT: The student is directly asking for the output. The code was executed and produced:\n{code_output}\nTell them the output directly. Do not ask questions."
+                else:
+                    misconception_note += f"\n\nThe student's code was executed and produced:\n{code_output}\nUse this to give more accurate feedback."
             else:
                 code_output = ""
 

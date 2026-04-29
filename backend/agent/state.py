@@ -31,3 +31,4 @@ class ChatRequest(BaseModel):
     resolved: bool = False
     history: List[dict] = Field(default=[],max_length=50)
     session_id: str = Field(default="")
+    provider: str = Field(default="groq")
