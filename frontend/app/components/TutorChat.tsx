@@ -62,7 +62,7 @@ async function send() {
     abortRef.current = new AbortController();
 
     try {
-      const res = await fetch("http://localhost:8000/chat", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: abortRef.current.signal,
@@ -189,7 +189,7 @@ async function send() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/upload", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/upload`, {
         method: "POST",
         body: formData,
       });
