@@ -15,4 +15,5 @@ pypdf
 langchain-google-genai
 langchain-text-splitters
 python-multipart
-langchain-huggingface sentence-transformers
+langchain-huggingface 
+sentence-transformers
