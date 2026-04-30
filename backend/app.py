@@ -41,9 +41,11 @@ sessions: dict = {}  # In-memory session store, keyed by session ID
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+allowed_origins = json.loads(os.getenv("ALLOWED_ORIGINS", '["http://localhost:3000"]'))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
