@@ -82,23 +82,41 @@ Open `http://localhost:3000`.
 
 ## Project Structure
 TutorChatAgent/
+
 ├── backend/
+
 │   ├── app.py              # FastAPI app, endpoints, streaming
+
 │   ├── requirements.txt
+
 │   └── agent/
+
 │       ├── graph.py        # LangGraph nodes and assessment graph
+
 │       ├── state.py        # TutorState, ChatRequest models
+
 │       ├── prompts.py      # All LLM prompt templates
+
 │       ├── tools.py        # Judge0 code execution, language detection
+
 │       └── rag/
+
 │           ├── indexer.py  # PDF ingestion and ChromaDB indexing
+
 │           └── retriever.py # Semantic search over uploaded documents
+
 └── frontend/
+
 └── app/
+
 ├── page.tsx        # Landing page
+
 ├── chat/
+
 │   └── page.tsx    # Chat route
+
 └── components/
+
 └── TutorChat.tsx
 
 ## Features
