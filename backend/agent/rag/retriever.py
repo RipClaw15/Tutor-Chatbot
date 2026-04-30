@@ -1,10 +1,13 @@
 import os
-from langchain_huggingface import HuggingFaceEmbeddings
+# from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_chroma import Chroma
 
 os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "false"
 
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+# embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+
+embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
 def get_relevant_context(vectorstore: Chroma, query: str, k: int = 3) -> str:
     """Given a query, retrieve the k most relevant context from the vector store and return it as a string."""

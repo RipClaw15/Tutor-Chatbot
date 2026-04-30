@@ -199,7 +199,14 @@ async def chat(request: Request, body:ChatRequest):
                                      - Never lecture. Guide with questions and analogies.
                                      - {'You may now reveal the answer fully and clearly.' if assessment_state['hint_level'] == 3 else 'Do NOT give the direct answer.'}"""
 
-            messages = [SystemMessage(content=system_content)] + assessment_state["messages"]
+            if body.provider == "gemini":
+                # Gemini handles SystemMessage poorly, fold into conversation
+                messages = assessment_state["messages"]
+                # Prepend system instructions to the last user message
+                last_msg = messages[-1]
+                messages = messages[:-1] + [HumanMessage(content=system_content + "\n\nStudent message: " + last_msg.content)]
+            else:
+                messages = [SystemMessage(content=system_content)] + assessment_state["messages"]
 
             # Step 3: stream the response token by token
             full_reply = ""
