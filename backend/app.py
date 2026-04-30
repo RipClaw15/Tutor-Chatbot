@@ -89,10 +89,30 @@ async def chat(request: Request, body:ChatRequest):
 
     # Handle unknown topic before defining event_stream
     if assessment_state["topic"] == "unknown":
+
+        # If student has uploaded a document, try to answer about it
+        if body.session_id and body.session_id in sessions:
+            rag_context = get_relevant_context(sessions[body.session_id], body.message)
+            async def doc_stream():
+                prompt = f"""The student uploaded a document and is asking: {body.message}
+                
+    Relevant content from their document:
+    {rag_context}
+
+    Answer their question based on the document content. Be concise and helpful."""
+                async for chunk in llm.astream([HumanMessage(content=prompt)]):
+                    token = chunk.content
+                    if token:
+                        yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+                yield f"data: {json.dumps({'type': 'state', 'topic': '', 'hint_level': 0, 'misconception': '', 'resolved': False})}\n\n"
+                yield "data: [DONE]\n\n"
+            return StreamingResponse(doc_stream(), media_type="text/event-stream")
+        
+        # No document uploaded, ask what they want to learn
         async def unknown_stream():
 
             
-            async for chunk in llm.astream([SystemMessage(
+            async for chunk in llm.astream([HumanMessage(
                 content="You are a CS tutor. The student hasn't told you what they want to learn yet. " \
                 "Greet the student and politely ask them what CS or programming concept they'd like to explore today.")]):
                 token = chunk.content

@@ -236,129 +236,131 @@ async function send() {
   const hint = HINT_LABELS[state.hint_level];
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-950 text-zinc-100">
+    <div className="flex h-screen bg-zinc-850 items-center justify-center">
+      <div className="flex flex-col w-full max-w-5xl h-[95vh] bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden text-zinc-100">
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold text-white">CS Tutor</span>
-          {state.topic && (
-            <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
-              {state.topic}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          {state.topic && (
-            <div className="flex items-center gap-2 text-xs">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: hint.color }}
-              />
-              <span className="text-zinc-400">{hint.label}</span>
-            </div>
-          )}
-          <button
-            onClick={reset}
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            new session
-          </button>
-        </div>
-      </header>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-            <p className="text-zinc-500 text-sm max-w-sm">
-              Ask me to explain any CS concept. I will guide you to the answer
-              with analogies and questions instead of just telling you.
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {["Explain recursion", "How does a hash table work?", "What is Big O notation?"].map((q) => (
-                <button
-                  key={q}
-                  onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                  className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
+        {/* Header */}
+        <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-semibold text-white">CS Tutor</span>
+            {state.topic && (
+              <span className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                {state.topic}
+              </span>
+            )}
           </div>
-        )}
-
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.role === "user"
-                  ? "bg-zinc-800 text-zinc-100 rounded-br-sm"
-                  : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-sm"
-              }`}
+          <div className="flex items-center gap-4">
+            {state.topic && (
+              <div className="flex items-center gap-2 text-xs">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: hint.color }}
+                />
+                <span className="text-zinc-400">{hint.label}</span>
+              </div>
+            )}
+            <button
+              onClick={reset}
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
             >
-              {msg.content}
-              {streaming && i === messages.length - 1 && msg.role === "assistant" && (
-                <span className="inline-block w-0.5 h-3.5 bg-zinc-400 ml-0.5 animate-pulse align-middle" />
-              )}
-            </div>
+              new session
+            </button>
           </div>
-        ))}
+        </header>
 
-        <div ref={bottomRef} />
-      </div>
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+              <p className="text-zinc-500 text-sm max-w-sm">
+                Ask me to explain any CS concept. I will guide you to the answer
+                with analogies and questions instead of just telling you.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {["Explain recursion", "How does a hash table work?", "What is Big O notation?"].map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                    className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Input */}
-      <div className="px-6 py-4 border-t border-zinc-800">
-        <div className="flex gap-3 items-end">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask a question or answer mine..."
-            rows={5}
-            className="flex-1 resize-y bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-            style={{ minHeight: "80px", maxHeight: "300px" }}
-          />
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                  msg.role === "user"
+                    ? "bg-zinc-800 text-zinc-100 rounded-br-sm"
+                    : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-sm"
+                }`}
+              >
+                {msg.content}
+                {streaming && i === messages.length - 1 && msg.role === "assistant" && (
+                  <span className="inline-block w-0.5 h-3.5 bg-zinc-400 ml-0.5 animate-pulse align-middle" />
+                )}
+              </div>
+            </div>
+          ))}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handleUpload}
-            className="hidden"
-            aria-label="Upload PDF document"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-colors border ${
-              docUploaded
-                ? "border-green-500 text-green-500"
-                : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
-            } disabled:opacity-30 disabled:cursor-not-allowed`}
-          >
-            {uploading ? "..." : docUploaded ? "Doc ✓" : "Upload"}
-          </button>
-
-          <button
-            onClick={send}
-            disabled={streaming || !input.trim()}
-            className="px-4 py-3 rounded-xl bg-white text-zinc-950 text-sm font-medium hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            {streaming ? "..." : "Send"}
-          </button>
+          <div ref={bottomRef} />
         </div>
-        <p className="text-xs text-zinc-600 mt-2">
-          Enter to send · Shift+Enter for new line
-        </p>
-      </div>
 
+        {/* Input */}
+        <div className="px-6 py-4 border-t border-zinc-800">
+          <div className="flex gap-3 items-end">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a question or answer mine..."
+              rows={5}
+              className="flex-1 resize-y bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+              style={{ minHeight: "80px", maxHeight: "300px" }}
+            />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleUpload}
+              className="hidden"
+              aria-label="Upload PDF document"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className={`px-4 py-3 rounded-xl text-sm font-medium transition-colors border ${
+                docUploaded
+                  ? "border-green-500 text-green-500"
+                  : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200"
+              } disabled:opacity-30 disabled:cursor-not-allowed`}
+            >
+              {uploading ? "..." : docUploaded ? "Doc ✓" : "Upload"}
+            </button>
+
+            <button
+              onClick={send}
+              disabled={streaming || !input.trim()}
+              className="px-4 py-3 rounded-xl bg-white text-zinc-950 text-sm font-medium hover:bg-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              {streaming ? "..." : "Send"}
+            </button>
+          </div>
+          <p className="text-xs text-zinc-600 mt-2">
+            Enter to send · Shift+Enter for new line
+          </p>
+        </div>
+
+      </div>
     </div>
   );
 }
