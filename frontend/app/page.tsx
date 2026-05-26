@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import WelcomeModal from "@/components/WelcomeModal";
 
 const SUGGESTIONS = [
   "Explain recursion",
@@ -25,7 +26,7 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-6 py-16">
-      
+      <WelcomeModal />
       {/* Title */}
       <div className="text-center mb-12 animate-fade-in">
         <p className="text-zinc-500 text-xs tracking-[0.3em] uppercase mb-4">

@@ -2,6 +2,7 @@
 
 
 import {useState, useRef, useEffect} from "react";  
+import emailjs from "@emailjs/browser";
 
 interface Message {
   role: "user" | "assistant";
@@ -33,6 +34,8 @@ export default function TutorChat({ initialMessage = "", provider = "groq" }: Tu
   const [sessionId, setSessionId]     = useState("");
   const [uploading, setUploading]     = useState(false);
   const [docUploaded, setDocUploaded] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const bottomRef   = useRef<HTMLDivElement>(null);
   const inputRef    = useRef<HTMLTextAreaElement>(null);
@@ -44,6 +47,11 @@ export default function TutorChat({ initialMessage = "", provider = "groq" }: Tu
   useEffect(() => {
     bottomRef.current?.scrollIntoView({behavior: "smooth"});
   }, [messages]);
+
+  useEffect(() => {
+  const val = localStorage.getItem("tutorConsent");
+  setConsent(val === "true");
+}, []);
 
 
 async function send() {
@@ -167,6 +175,41 @@ async function send() {
     setInput("");
     setStreaming(false);
   }
+
+  const sendReport = async () => {
+  if (isSending) return;
+  if (messages.length === 0) {
+    alert("No conversation to report.");
+    return;
+  }
+
+  setIsSending(true);
+  try {
+    // Format conversation for email
+    let conversationLog = "";
+    messages.forEach((msg) => {
+      const role = msg.role === "user" ? "👤 User" : "🤖 AI Tutor";
+      conversationLog += `${role}:\n${msg.content}\n\n---\n\n`;
+    });
+
+    await emailjs.send(
+      process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+      process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+      {
+        conversation_log: conversationLog,
+        date: new Date().toLocaleString(),
+        user_id: "anonymous",
+      },
+      process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!
+    );
+    alert("✅ Report sent! Thank you for your help.");
+  } catch (error) {
+    console.error("EmailJS error:", error);
+    alert("❌ Failed to send report. Please try again later.");
+  } finally {
+    setIsSending(false);
+  }
+};
 
 
   // Upload file handler
@@ -359,6 +402,16 @@ async function send() {
             Enter to send · Shift+Enter for new line
           </p>
         </div>
+        {/* Send Report button (only if user consented) */}
+          {consent && (
+            <button
+              onClick={sendReport}
+              disabled={isSending}
+              className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-red-700 disabled:opacity-50 z-50"
+            >
+              {isSending ? "Sending..." : "📧 Send Report"}
+            </button>
+          )}
 
       </div>
     </div>
